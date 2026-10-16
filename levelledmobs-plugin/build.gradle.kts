@@ -1,0 +1,153 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
+
+group = "io.github.arcaneplugins"
+description = description
+version = version
+
+plugins {
+    id("java")
+    kotlin("jvm") version "2.3.21"
+    id("com.gradleup.shadow") version "9.4.0"
+    id("idea")
+    id("maven-publish")
+    id("java-library")
+    id("kotlin")
+    id("org.jetbrains.dokka")
+}
+
+idea {
+    module {
+        isDownloadJavadoc = true
+        isDownloadSources = true
+    }
+}
+
+dependencies {
+    //implementation("org.jetbrains.kotlin:kotlin-stdlib:2.3.20")
+    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT") {
+        exclude(group = "com.google.guava", module = "guava")
+        //exclude(group = "com.google.code.gson", module = "gson")
+        exclude(group = "it.unimi.dsi", module = "fastutil")
+    }
+    compileOnly("dev.folia:folia-api:1.20.4-R0.1-SNAPSHOT") // https://repo.papermc.io/#browse/browse:maven-public:dev%2Ffolia%2Ffolia-api
+    implementation("com.github.Redempt:Crunch:2.0.3") // https://redempt.dev/com/github/Redempt/Crunch
+    implementation("org.bstats:bstats-bukkit:3.1.0") // https://mvnrepository.com/artifact/org.bstats/bstats-bukkit
+    compileOnly("me.clip:placeholderapi:2.11.6") // https://repo.extendedclip.com/content/repositories/placeholderapi/me/clip/placeholderapi/
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:7.0.14") // https://maven.enginehub.org/repo/com/sk89q/worldguard/worldguard-bukkit/
+    compileOnly("de.tr7zw:item-nbt-api-plugin:2.15.0") // https://mvnrepository.com/artifact/de.tr7zw/item-nbt-api-plugin
+    compileOnly("io.github.stumper66:LM_Items:1.3.0") // https://mvnrepository.com/artifact/io.github.stumper66/LM_Items
+}
+
+repositories {
+    maven("https://maven.aliyun.com/repository/public")
+    maven("https://maven.aliyun.com/repository/gradle-plugin")
+    maven("https://maven.aliyun.com/repository/central")
+    gradlePluginPortal()
+    mavenCentral()
+    mavenLocal()
+    maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
+    maven("https://repo.papermc.io/repository/maven-public/")
+    maven("https://repo.essentialsx.net/releases/")
+    maven("https://repo.extendedclip.com/content/repositories/placeholderapi/")
+    maven("https://oss.sonatype.org/content/groups/public/")
+    maven("https://repo.codemc.org/repository/maven-public")
+    maven("https://maven.enginehub.org/repo/")
+    maven("https://repo1.maven.org/maven2/")
+    maven("https://redempt.dev")
+    maven("https://jitpack.io")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+    toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+    withSourcesJar()
+    withJavadocJar()
+}
+
+tasks {
+    shadowJar {
+        manifest {
+            attributes["paperweight-mappings-namespace"] = "mojang"
+        }
+
+        archiveFileName.set("LevelledMobs-$version.jar")
+        dependencies{
+            relocate("org.bstats", "io.github.arcaneplugins.levelledmobs.libs.bstats")
+            relocate("redempt.crunch", "io.github.arcaneplugins.levelledmobs.libs.crunch")
+            relocate("org.jetbrains.annotations", "io.github.arcaneplugins.levelledmobs.libs.jetbrains.annotations")
+            relocate("kotlin", "io.github.arcaneplugins.levelledmobs.libs.kotlin")
+        }
+        minimize{}
+    }
+
+    kotlin {
+        compilerOptions {
+            jvmTarget.set(JvmTarget.JVM_21)
+            apiVersion.set(KotlinVersion.KOTLIN_2_3)
+        }
+    }
+
+    compileJava {
+        options.isDeprecation = true
+        options.encoding = "UTF-8"
+
+        dependsOn(clean)
+    }
+
+    processResources {
+        outputs.upToDateWhen { false }
+        filesMatching("plugin.yml") {
+            expand(mapOf(
+                "version" to version,
+                "description" to rootProject.description
+            ))
+        }
+    }
+
+    build {
+        dependsOn(shadowJar)
+    }
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("maven") {
+            groupId = group.toString()
+            version = version.toString()
+            artifactId = artifactId.toString()
+            pom {
+                //name.set("…")
+                description.set("The Ultimate RPG Mob Levelling Solution")
+                url.set("https://github.com/ArcanePlugins/LevelledMobs")
+                licenses {
+                    license {
+                        name.set("GNU")
+                        url.set("https://github.com/ArcanePlugins/LevelledMobs/blob/master/LICENSE.md")
+                    }
+                }
+                developers {
+                    developer {
+                        name.set("Stumper66")
+                    }
+                    developer {
+                        name.set("UltimaOath")
+                    }
+                    developer {
+                        name.set("Lokka30")
+                    }
+                }
+                scm {
+                    url.set("https://github.com/ArcanePlugins/LevelledMobs")
+                }
+            }
+
+            from(components["java"])
+        }
+    }
+}
+
+java {
+    withJavadocJar()
+}
